@@ -8,8 +8,8 @@
  * @param   {String}            [opts.property] [Property on the request to use to identify requests (default: `ip`)]
  * @param   {String}            [opts.header]   [Header name to use to identify requests (use either this or `property`--not both)]
  * @param   {Function}          [opts.handler]  [Middleware function that will be called when limit is hit rather than allowing the middleware to reply directly]
- * @param   {Promise.<Object>}  [opts.getStore] [Function the middleware may use to retrieve the token store (e.g. when storing in redis)]
- * @param 	{Promise}           [opts.setStore] [Function to save data to the store (required if `getStore` is set)]
+ * @param   {Function}          [opts.getStore] [Function the middleware may use to retrieve the token store (e.g. when storing in redis)]
+ * @param 	{Function}          [opts.setStore] [Function to save data to the store (required if `getStore` is set)]
  *
  * @returns {Function} Configured rate limiter
  */
@@ -38,44 +38,90 @@ module.exports = (opts) => {
 		opts.property = 'ip';
 	}
 
-	let tokens = {};
+	if ((opts.getStore && !opts.setStore) || (opts.setStore && !opts.getStore)) {
+		throw new Error(`both 'getStore' and 'setStore' must be provided if one is set`);
+	}
 
-	// Every second lower the number of tokens based upon
-	// the given request per minute setting
-	setInterval(() => {
-		Object.keys(tokens).forEach((token) => {
-			if (tokens[token] > 0) {
-				tokens[token] -= (opts.rpm / 60);
-			}
-		});
-	}, 1000);
+	// If these are provided the user is going to be responsible for draining the
+	// buckets of their tokens at the proper interval
+	if (opts.getStore && opts.setStore) {
 
-	return (req, res, next) => {
+		return (req, res, next) => {
 
-		let prop = opts.property ? req[opts.property] : req.headers[opts.header];
+			let prop = opts.property ? req[opts.property] : req.headers[opts.header];
+			let tokens = 1;
 
-		if (tokens[prop]) {
+			opts.getStore(prop, (e, result) => {
+				if (e) return next();
 
-			if (tokens[prop] >= opts.rpm) {
+				if (typeof result === 'number') {
 
-				if (opts.handler) {
-					return opts.handler(req, res, next);
+					tokens = result;
+
+					if (result >= opts.rpm) {
+
+						if (opts.handler) {
+							return opts.handler(req, res, next);
+						}
+
+						return res.status(429).json({
+							error: {
+								code: 429,
+								message: 'too many requests'
+							}
+						});
+					}
+
+					tokens += 1;
 				}
 
-				return res.status(429).json({
-					error: {
-						code: 429,
-						message: 'too many requests'
-					}
+				opts.setStore(prop, tokens, () => {
+					return next();
 				});
+			});
+		};
+
+	} else {
+
+		let tokens = {};
+
+		// Every second lower the number of tokens based upon
+		// the given request per minute setting
+		setInterval(() => {
+			Object.keys(tokens).forEach((token) => {
+				if (tokens[token] > 0) {
+					tokens[token] -= (opts.rpm / 60);
+				}
+			});
+		}, 1000);
+
+		return (req, res, next) => {
+
+			let prop = opts.property ? req[opts.property] : req.headers[opts.header];
+
+			if (tokens[prop]) {
+
+				if (tokens[prop] >= opts.rpm) {
+
+					if (opts.handler) {
+						return opts.handler(req, res, next);
+					}
+
+					return res.status(429).json({
+						error: {
+							code: 429,
+							message: 'too many requests'
+						}
+					});
+				}
+
+				tokens[prop] += 1;
+			} else {
+				tokens[prop] = 1;
 			}
 
-			tokens[prop] += 1;
-		} else {
-			tokens[prop] = 1;
+			return next();
 		}
-
-		return next();
 	}
 };
 

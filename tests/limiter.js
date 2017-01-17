@@ -35,6 +35,18 @@ describe('limiter()', () => {
 				});
 			}, /only/);
 		});
+
+		it('should require both getStore and setStore if one is set', () => {
+			assert.throws(() => {
+				limiter({
+					rpm: 50,
+					header: 'header',
+					getStore: () => {
+
+					}
+				});
+			}, /setStore/);
+		});
 	});
 
 	describe('middleware', () => {
@@ -105,6 +117,40 @@ describe('limiter()', () => {
 								assert.equal(res.text, 'OK');
 								done();
 							});
+						});
+					});
+				});
+			});
+		});
+
+		it('should allow the store to be maintained outside of the package', (done) => {
+
+			let store = {};
+
+			const app = express();
+			app.use(limiter({
+				rpm: 3,
+				getStore: (key, callback) => {
+					return callback(null, store[key]);
+				},
+				setStore: (key, value, callback) => {
+					store[key] = value;
+					return callback();
+				}
+			}));
+			app.use('*', (req, res) => res.status(200).end('OK'));
+
+			const request = supertest(app);
+			request.get('/').set('token', 'first').end((e, res) => {
+				assert.equal(res.text, 'OK');
+				request.get('/').set('token', 'first').end((e, res) => {
+					assert.equal(res.text, 'OK');
+					request.get('/').set('token', 'first').end((e, res) => {
+						assert.equal(res.text, 'OK');
+						request.get('/').set('token', 'first').end((e, res) => {
+							assert.equal(res.status, 429);
+							assert.equal(res.body.error.code, 429);
+							done();
 						});
 					});
 				});
