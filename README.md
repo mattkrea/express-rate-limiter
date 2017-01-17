@@ -1,16 +1,16 @@
-# Express Rate Limiting
+# Express Throttler
 Basic rate limiting for Express.js
 
 # Install
 
-`npm install express-rate-limiter`
+`npm install express-throttler`
 
 # Usage
 
 ```js
 'use strict';
 
-const limiter = require('express-rate-limiter');
+const limiter = require('express-throttler');
 const app = require('express')();
 
 app.use(limiter({

@@ -3,11 +3,13 @@
 /**
  * Create a middleware function for rate limiting
  *
- * @param   {Object|Number}   opts            [Middleware options or just the requests per minute to allow]
- * @param   {Number}          [opts.rpm]      [Requests per minute to allow]
- * @param   {String}          [opts.property] [Property on the request to use to identify requests (default: `ip`)]
- * @param   {String}          [opts.header]   [Header name to use to identify requests (use either this or `property`--not both)]
- * @param   {Function}        [opts.handler]  [Middleware function that will be called when limit is hit rather than allowing the middleware to reply directly]
+ * @param   {Object|Number}     opts            [Middleware options or just the requests per minute to allow]
+ * @param   {Number}            [opts.rpm]      [Requests per minute to allow]
+ * @param   {String}            [opts.property] [Property on the request to use to identify requests (default: `ip`)]
+ * @param   {String}            [opts.header]   [Header name to use to identify requests (use either this or `property`--not both)]
+ * @param   {Function}          [opts.handler]  [Middleware function that will be called when limit is hit rather than allowing the middleware to reply directly]
+ * @param   {Promise.<Object>}  [opts.getStore] [Function the middleware may use to retrieve the token store (e.g. when storing in redis)]
+ * @param 	{Promise}           [opts.setStore] [Function to save data to the store (required if `getStore` is set)]
  *
  * @returns {Function} Configured rate limiter
  */
