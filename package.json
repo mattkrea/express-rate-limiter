@@ -1,0 +1,33 @@
+{
+  "devDependencies": {
+    "express": "^4.14.0",
+    "istanbul": "^0.4.5",
+    "mocha": "^3.2.0",
+    "supertest": "^2.0.1"
+  },
+  "name": "express-rate-limiter",
+  "description": "Basic rate limiting for Express.js",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "istanbul cover _mocha tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mattkrea/express-rate-limiter.git"
+  },
+  "keywords": [
+    "express",
+    "rate",
+    "limit"
+  ],
+  "author": "mattkrea",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mattkrea/express-rate-limiter/issues"
+  },
+  "homepage": "https://github.com/mattkrea/express-rate-limiter#readme"
+}
